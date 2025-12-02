@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simple Parsons Problem</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f4f9;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 40px;
+            color: #333;
+        }
+
+        h1 { margin-bottom: 10px; }
+        p { margin-bottom: 30px; color: #666; }
+
+        .game-container {
+            display: flex;
+            gap: 20px;
+            width: 100%;
+            max-width: 800px;
+        }
+
+        .column {
+            flex: 1;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            min-height: 300px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .column h3 {
+            margin-top: 0;
+            text-align: center;
+            color: #555;
+            border-bottom: 2px solid #eee;
+            padding-bottom: 10px;
+        }
+
+        .code-block {
+            background-color: #2d2d2d;
+            color: #61dafb; /* Python-ish blue */
+            padding: 15px;
+            border-radius: 6px;
+            font-family: 'Courier New', Courier, monospace;
+            cursor: pointer;
+            user-select: none;
+            transition: transform 0.2s, background-color 0.2s;
+            border-left: 5px solid #ff6b6b; /* Indicator */
+        }
+
+        .code-block:hover {
+            transform: translateY(-2px);
+            background-color: #383838;
+        }
+
+        /* Indentation helper classes */
+        .indent-0 { margin-left: 0; }
+        .indent-1 { margin-left: 20px; border-left-color: #ffd93d; } /* Indented blocks get diff color border */
+
+        #check-btn {
+            margin-top: 30px;
+            padding: 12px 30px;
+            font-size: 18px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        #check-btn:hover { background-color: #45a049; }
+
+        /* The Success Screen Overlay */
+        #success-screen {
+            display: none; /* Hidden by default */
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background-color: rgba(0,0,0,0.85);
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            color: white;
+            z-index: 1000;
+            animation: fadeIn 0.5s;
+        }
+
+        .success-box {
+            background: #fff;
+            color: #333;
+            padding: 40px;
+            border-radius: 10px;
+            text-align: center;
+            box-shadow: 0 0 20px rgba(0,255,100,0.5);
+        }
+
+        .success-box h2 { color: #4CAF50; font-size: 2.5rem; margin: 0; }
+        .success-box p { font-size: 1.2rem; margin-top: 10px; }
+        .reset-btn {
+            margin-top: 20px;
+            padding: 10px 20px;
+            background-color: #333;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+
+    <h1>🐍 Parsons Puzzle</h1>
+    <p>Construct a function that prints "Hello, World!" by clicking blocks to move them.</p>
+
+    <div class="game-container">
+        <div class="column" id="source-area">
+            <h3>Scrambled Code</h3>
+            </div>
+
+        <div class="column" id="target-area">
+            <h3>Your Solution</h3>
+            </div>
+    </div>
+
+    <button id="check-btn">Check Answer</button>
+
+    <div id="success-screen">
+        <div class="success-box">
+            <h2>🎉 Correct!</h2>
+            <p>You successfully arranged the code.</p>
+            <button class="reset-btn" onclick="location.reload()">Play Again</button>
+        </div>
+    </div>
+
+    <script>
+        // The correct order and content of the code
+        // id: unique identifier, text: code string, indent: visual class
+        const puzzleData = [
+            { id: 1, text: 'def greet():', indent: 'indent-0' },
+            { id: 2, text: '    print("Hello, World!")', indent: 'indent-1' },
+            { id: 3, text: 'greet()', indent: 'indent-0' }
+        ];
+
+        // Shuffle function
+        function shuffle(array) {
+            return array.sort(() => Math.random() - 0.5);
+        }
+
+        const sourceArea = document.getElementById('source-area');
+        const targetArea = document.getElementById('target-area');
+        const checkBtn = document.getElementById('check-btn');
+        const successScreen = document.getElementById('success-screen');
+
+        // Render shuffled blocks on load
+        const shuffledBlocks = shuffle([...puzzleData]);
+
+        shuffledBlocks.forEach(block => {
+            const div = document.createElement('div');
+            div.className = `code-block ${block.indent}`;
+            div.textContent = block.text;
+            div.dataset.id = block.id; // Store ID to check later
+            
+            // Add click event to move between columns
+            div.addEventListener('click', () => {
+                if (div.parentElement === sourceArea) {
+                    targetArea.appendChild(div);
+                } else {
+                    sourceArea.appendChild(div);
+                }
+            });
+
+            sourceArea.appendChild(div);
+        });
+
+        // Check Logic
+        checkBtn.addEventListener('click', () => {
+            const currentBlocks = Array.from(targetArea.children).filter(el => el.classList.contains('code-block'));
+            
+            // Check 1: Are all blocks used?
+            if (currentBlocks.length !== puzzleData.length) {
+                alert("Please use all code blocks!");
+                return;
+            }
+
+            // Check 2: Is the order correct?
+            let isCorrect = true;
+            currentBlocks.forEach((block, index) => {
+                if (parseInt(block.dataset.id) !== puzzleData[index].id) {
+                    isCorrect = false;
+                }
+            });
+
+            if (isCorrect) {
+                // Show Success Screen
+                successScreen.style.display = 'flex';
+            } else {
+                alert("Not quite right. Check the order and logic!");
+            }
+        });
+    </script>
+
+</body>
+</html>
